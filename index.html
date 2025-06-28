@@ -13,17 +13,37 @@
         <div class="score-panel">
             <div class="score">Score: <span id="score">0</span></div>
             <div class="timer">Time: <span id="time">30</span>s</div>
-            <button id="start-btn">Start Game</button>
+            <button id="reset-btn" style="margin-left:12px;">Reset</button>
         </div>
         
         <div id="game-container">
           <!-- Background image is now set via CSS -->
         </div>
-        <div style="width:100%;display:flex;justify-content:center;margin-top:24px;">
-          <img src="img/cw_logo-horizontal.png" alt="CW Logo" style="height:48px;max-width:90vw;object-fit:contain;">
+        <div style="width:100%;display:flex;justify-content:center;margin-top:2px; margin-bottom:2px;">
+          <img src="img/cw_logo-horizontal.png" alt="CW Logo" style="height:24px;max-width:40vw;object-fit:contain;">
         </div>
+        <footer class="cw-footer">
+          <div>
+            <a href="https://www.charitywater.org/" target="_blank" class="cw-footer-link">charity: water</a>
+            &nbsp;|&nbsp;
+            <a href="https://www.charitywater.org/donate" target="_blank" class="cw-footer-link donate-link">Donate</a>
+          </div>
+          <div class="cw-footer-tagline">Together, we can end the water crisis.</div>
+        </footer>
     </div>
-    
+    <!-- Difficulty selection modal -->
+    <div id="difficulty-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:2000;">
+      <div style="background:#fff;padding:32px 24px 24px 24px;border-radius:16px;box-shadow:0 4px 32px rgba(0,0,0,0.2);text-align:center;min-width:300px;max-width:90vw;">
+        <h2 style="margin-bottom:18px;">Choose Difficulty</h2>
+        <button class="difficulty-btn" data-difficulty="easy" style="margin:8px 12px;padding:10px 24px;font-size:18px;background:#4FCB53;color:#fff;border:none;border-radius:6px;cursor:pointer;">Easy</button>
+        <button class="difficulty-btn" data-difficulty="normal" style="margin:8px 12px;padding:10px 24px;font-size:18px;background:#FCC907;color:#fff;border:none;border-radius:6px;cursor:pointer;">Normal</button>
+        <button class="difficulty-btn" data-difficulty="hard" style="margin:8px 12px;padding:10px 24px;font-size:18px;background:#F5402C;color:#fff;border:none;border-radius:6px;cursor:pointer;">Hard</button>
+        <br>
+        <button id="start-btn" style="margin-top:24px;padding:10px 32px;font-size:20px;background:#FFC907;color:#ffffff;border:none;border-radius:8px;cursor:pointer;font-family:'Georgia',serif;" disabled>Start Game</button>
+      </div>
+    </div>
+    <audio id="dropSound" src="./audio/water-drip-45622.mp3" preload="auto"></audio>
+    <audio id="badDropSound" src="./audio/short-gas-leak-98286.mp3" preload="auto"></audio>
     <script src="script.js"></script>
 </body>
 </html>

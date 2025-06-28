@@ -1,23 +1,74 @@
+// Difficulty settings
+const DIFFICULTY_SETTINGS = {
+  easy:   { dropsPerTick: 2, winScore: 20, time: 30, dropSpeed: 4 },
+  normal: { dropsPerTick: 3, winScore: 25, time: 30, dropSpeed: 3 },
+  hard:   { dropsPerTick: 4, winScore: 25, time: 20, dropSpeed: 2.7 }
+};
+
+let currentDifficulty = null;
+let winScore = null;
+let dropSpeed = null;
+let DROPS_PER_TICK = null;
+let timeLeft = null;
+
+// Setup difficulty modal logic and start/reset button handlers
+window.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('difficulty-modal');
+  const startBtn = document.getElementById('start-btn');
+  modal.style.display = 'flex';
+  startBtn.disabled = true;
+  currentDifficulty = null;
+
+  // Difficulty selection logic
+  document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.onclick = function() {
+      currentDifficulty = btn.dataset.difficulty;
+      const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+      winScore = settings.winScore;
+      dropSpeed = settings.dropSpeed;
+      DROPS_PER_TICK = settings.dropsPerTick;
+      timeLeft = settings.time;
+      startBtn.disabled = false;
+      updateTimeDisplay();
+      // Hide all difficulty buttons after selection
+      document.querySelectorAll('.difficulty-btn').forEach(b => b.style.display = 'none');
+    };
+  });
+
+  // Start button logic (in modal)
+  startBtn.onclick = function() {
+    modal.style.display = 'none';
+    // Show difficulty buttons again for next time
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.style.display = '');
+    startGame();
+  };
+
+  // Reset button logic (in score panel)
+  document.getElementById("reset-btn").onclick = resetGame;
+});
+
 // Variables to control game state
-let gameRunning = false; // Keeps track of whether game is active or not
-let dropMaker; // Will store our timer that creates drops regularly
-let score = 0; // Track the player's score
-
-const DROPS_PER_TICK = 3; // Number of drops to create per interval
-
-// Wait for button click to start the game
-document.getElementById("start-btn").addEventListener("click", startGame);
-
-let timeLeft = 30;
+let gameRunning = false;
+let dropMaker;
+let score = 0;
 let timerInterval;
 
+// Milestone messages (percentages of winScore)
+const MILESTONES = [
+  { percent: 0.5, message: "Halfway there!" },
+  { percent: 0.75, message: "Almost there!" },
+  { percent: 1.0, message: "You reached the goal!" }
+];
+let triggeredMilestones = [];
+
 function startGame() {
-  // Prevent multiple games from running at once
   if (gameRunning) return;
+  if (!currentDifficulty) return; // Prevent start if no difficulty chosen
 
   gameRunning = true;
   score = 0;
-  timeLeft = 30;
+  timeLeft = DIFFICULTY_SETTINGS[currentDifficulty].time;
+  triggeredMilestones = []; // Reset milestones for new game
   updateScoreDisplay();
   updateTimeDisplay();
 
@@ -33,7 +84,7 @@ function startGame() {
     }
   }, 1000);
 
-  // Create new drops every second (1000 milliseconds)
+  // Create new drops every second
   dropMaker = setInterval(() => {
     for (let i = 0; i < DROPS_PER_TICK; i++) {
       createDrop();
@@ -46,7 +97,7 @@ function updateScoreDisplay() {
 }
 
 function updateTimeDisplay() {
-  document.getElementById("time").textContent = timeLeft;
+  document.getElementById("time").textContent = timeLeft !== null ? timeLeft : '';
 }
 
 function endGame() {
@@ -54,10 +105,9 @@ function endGame() {
   clearInterval(timerInterval);
   gameRunning = false;
 
-  // Show feedback
   const scorePanel = document.querySelector('.score-panel');
   let message, positive;
-  if (score > 25) {
+  if (score >= winScore) {
     message = `Water Warrior! You scored ${score} points!`;
     positive = true;
     if (scorePanel) {
@@ -107,7 +157,12 @@ function showEndModal(message, positive) {
   document.getElementById('play-again-btn').onclick = function() {
     modal.style.display = 'none';
     removeConfetti();
-    startGame();
+    // Show difficulty modal again before restarting
+    document.getElementById('difficulty-modal').style.display = 'flex';
+    document.getElementById('start-btn').disabled = true;
+    currentDifficulty = null;
+    // Show difficulty buttons again for next time
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.style.display = '');
   };
   modal.style.display = 'flex';
 }
@@ -137,7 +192,6 @@ function launchConfetti() {
     conf.style.borderRadius = '3px';
     conf.style.transform = `rotate(${Math.random()*360}deg)`;
     confettiContainer.appendChild(conf);
-    // Animate
     const fall = 600 + Math.random()*600;
     const drift = (Math.random()-0.5)*200;
     conf.animate([
@@ -156,50 +210,50 @@ function removeConfetti() {
   if (confetti) confetti.remove();
 }
 
-function createDrop() {
-  // Create a new div element that will be our water drop
-  const drop = document.createElement("div");
+// Sound for drop collection
+const dropSound = document.getElementById("dropSound");
+const badDropSound = document.getElementById("badDropSound");
+badDropSound.playbackRate = 3; // Play bad drop sound 2x faster
 
-  // Randomly decide if this is a good (blue) or bad (black) drop
-  const isGood = Math.random() > 0.3; // 70% blue, 30% black
+function playDropSound() {
+  dropSound.currentTime = 0;
+  dropSound.play();
+}
+
+function playBadDropSound() {
+  badDropSound.currentTime = 0;
+  badDropSound.play();
+}
+
+function createDrop() {
+  const drop = document.createElement("div");
+  const isGood = Math.random() > 0.3;
   if (isGood) {
     drop.className = "water-drop";
     drop.style.backgroundColor = "#0099ff";
   } else {
     drop.className = "water-drop bad-drop";
-    drop.style.backgroundColor = "#222"; // black
+    drop.style.backgroundColor = "#222";
   }
-
-  // Make drops different sizes for visual variety
   const initialSize = 60;
   const sizeMultiplier = Math.random() * 0.8 + 0.5;
   const size = initialSize * sizeMultiplier;
   drop.style.width = drop.style.height = `${size}px`;
-
-  // Position the drop randomly across the game width
-  // Subtract 60 pixels to keep drops fully inside the container
   const gameWidth = document.getElementById("game-container").offsetWidth;
   const xPosition = Math.random() * (gameWidth - 60);
   drop.style.left = xPosition + "px";
-
-  // Make drops fall for 7 seconds (was 4s)
-  drop.style.animationDuration = "4s";
-
-  // Add the new drop to the game screen
+  drop.style.animationDuration = dropSpeed ? `${dropSpeed}s` : "4s";
   document.getElementById("game-container").appendChild(drop);
-
-  // Remove drops that reach the bottom (weren't clicked)
   drop.addEventListener("animationend", () => {
-    drop.remove(); // Clean up drops that weren't caught
+    drop.remove();
   });
-
-  // Add click handler for scoring and feedback
   drop.addEventListener("click", () => {
     const scorePanel = document.querySelector('.score-panel');
     if (isGood) {
+      playDropSound(); // Play sound when good drop is collected
       score++;
       updateScoreDisplay();
-      // Visual feedback: briefly highlight the score panel green
+      checkMilestones();
       if (scorePanel) {
         scorePanel.style.backgroundColor = "#e6ffe6";
         setTimeout(() => {
@@ -207,9 +261,10 @@ function createDrop() {
         }, 200);
       }
     } else {
+      playBadDropSound(); // Play sound when bad drop is collected
       score--;
       updateScoreDisplay();
-      // Visual feedback: briefly highlight the score panel red
+      checkMilestones();
       if (scorePanel) {
         scorePanel.style.backgroundColor = "#ffe6e6";
         setTimeout(() => {
@@ -219,4 +274,71 @@ function createDrop() {
     }
     drop.remove();
   });
+}
+
+// Example for custom game logic (not used in this code, but as requested):
+// if (drop.type === 'bad' && isColliding(player, drop)) {
+//   playBadDropSound();
+//   score -= 5; // or your bad drop logic
+//   drops.splice(index, 1); // remove the drop if needed
+// }
+
+function checkMilestones() {
+  if (!winScore) return;
+  MILESTONES.forEach(milestone => {
+    const milestoneScore = Math.ceil(winScore * milestone.percent);
+    if (
+      score >= milestoneScore &&
+      !triggeredMilestones.includes(milestone.percent) &&
+      milestone.percent < 1 // Don't show "You reached the goal!" here
+    ) {
+      showMilestoneMessage(milestone.message);
+      triggeredMilestones.push(milestone.percent);
+    }
+  });
+}
+
+function showMilestoneMessage(msg) {
+  // Simple floating message at top center
+  let el = document.createElement('div');
+  el.textContent = msg;
+  el.style.position = 'fixed';
+  el.style.top = '40px';
+  el.style.left = '50%';
+  el.style.transform = 'translateX(-50%)';
+  el.style.background = '#FFC907';
+  el.style.color = '#222';
+  el.style.fontWeight = 'bold';
+  el.style.fontFamily = 'Georgia, serif';
+  el.style.fontSize = '20px';
+  el.style.padding = '12px 32px';
+  el.style.borderRadius = '10px';
+  el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)';
+  el.style.zIndex = 3000;
+  el.style.opacity = '0.97';
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.7s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 700);
+  }, 1200);
+}
+
+function resetGame() {
+  clearInterval(dropMaker);
+  clearInterval(timerInterval);
+  gameRunning = false;
+  document.querySelectorAll('.water-drop').forEach(drop => drop.remove());
+  score = 0;
+  timeLeft = currentDifficulty ? DIFFICULTY_SETTINGS[currentDifficulty].time : '';
+  updateScoreDisplay();
+  updateTimeDisplay();
+  const endModal = document.getElementById('end-modal');
+  if (endModal) endModal.style.display = 'none';
+  removeConfetti();
+  document.getElementById('difficulty-modal').style.display = 'flex';
+  document.getElementById('start-btn').disabled = true;
+  currentDifficulty = null;
+  // Show difficulty buttons again for next time
+  document.querySelectorAll('.difficulty-btn').forEach(b => b.style.display = '');
 }
